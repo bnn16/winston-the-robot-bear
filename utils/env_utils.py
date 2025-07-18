@@ -30,7 +30,6 @@ def load_environment_variables() -> Optional[Dict[str, str | None]]:
 
         for var in MUST_HAVE_ENV_VARS:
             assert_env_variable(var)
-        print("Environment variables loaded and validated")
         return env
     except FileNotFoundError:
         print(".env file not found. Please create one with your API keys.")
@@ -58,3 +57,8 @@ def get_environment_variable(var_name: str) -> Optional[str]:
 def is_development() -> bool:
     """Check if we're running in development mode."""
     return get_environment_variable("ENVIRONMENT") == "development"
+
+
+def is_loud_env() -> bool:
+    """Check if we're running in a loud environment."""
+    return get_environment_variable("LOUD_ENV") == "true"
