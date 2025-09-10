@@ -32,20 +32,20 @@ A voice assistant project built for the "Shitty Robot Challenge" university comp
 
 1. **Clone the repository**
    ```bash
-   git clone todo add me
-   cd assistant-kit
+   git clone https://github.com/bnn16/winston-the-robot-bear
+   cd winston-the-robot-bear
    ```
 
 2. **Create virtual environment**
    ```bash
-   python -m venv assistant-kit-env
+   python -m venv winston-the-robot-bear-env
    ```
 
 3. **Activate the environment**
    ```bash
-   source assistant-kit-env/bin/activate  # On macOS/Linux
+   source winston-the-robot-bear/bin/activate  # On macOS/Linux
    # or
-   assistant-kit-env\Scripts\activate     # On Windows
+   winston-the-robot-bear\Scripts\activate     # On Windows
    ```
 
 4. **Install dependencies**
