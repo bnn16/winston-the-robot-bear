@@ -5,8 +5,11 @@ from elevenlabs import ElevenLabs
 import pyaudio
 from io import BytesIO
 import numpy as np
+import logging
 
 from utils.env_utils import get_environment_variable, is_development
+
+logger = logging.getLogger(__name__)
 
 WAKE_WORDS = ["winston"]
 
@@ -63,6 +66,7 @@ def waiting_for_wake_word_handler(
 
     if is_development():
         print("🎯 Wake word detected! Recording command...")
+    logger.info("🎯 Wake word detected! Switching to command recording mode")
 
     return ListeningState.RECORDING_COMMAND, list(wake_word_buffer)
 
@@ -85,6 +89,7 @@ def check_audio_stream_for_wake_word(
     Returns:
         Tuple of (wake_word_detected, command_text)
     """
+    logger.debug("Starting wake word detection...")
     audio_generator = audio_stream_generator(audio_source)
 
     wake_word_buffer = deque(maxlen=12)
@@ -109,6 +114,7 @@ def check_audio_stream_for_wake_word(
 
         if state == ListeningState.RECORDING_COMMAND:
             command_buffer.append(chunk)
+            logger.debug(f"Recording command chunk {len(command_buffer)}")
 
             if not is_silent:
                 consecutive_silence = 0
@@ -118,6 +124,7 @@ def check_audio_stream_for_wake_word(
 
             if consecutive_silence >= max_silence_chunks:
                 state = ListeningState.FINISHED
+                logger.info("Silence detected, finishing command recording")
                 break
 
         chunk_count += 1
@@ -129,6 +136,7 @@ def check_audio_stream_for_wake_word(
         full_command = eleven_labs_stt(full_audio)
         return full_command
 
+    logger.debug("No command captured")
     return None
 
 
@@ -141,15 +149,19 @@ def load_whisper_model():
     return load_model("tiny")
 
 
-def transcribe_audio_buffer(audio_buffer):
+def transcribe_audio_buffer(audio_buffer, model = None):
     """
     Transcribe audio data from a buffer using the Whisper model.
     """
-    model = load_whisper_model()
+    logger.debug("🎤 Starting Whisper transcription...")
+    if model is None:
+        model = load_whisper_model()
 
     result = model.transcribe(audio_buffer, temperature=0.2, without_timestamps=True)
+    logger.debug("Whisper transcription completed")
 
     if result["text"] is None:
+        logger.warning("Whisper returned no text")
         return None
 
     return str(result["text"]).strip()
@@ -161,19 +173,23 @@ def check_wake_word(transcribed_audio: str, wake_words: List[str]) -> bool:
     """
     for wake_word in wake_words:
         if wake_word.lower() in transcribed_audio.lower():
+            logger.info(f"Wake word '{wake_word}' detected")
             return True
 
     return False
 
 
 def eleven_labs_stt(audio_buffer):
+    logger.info("Starting ElevenLabs STT transcription...")
     import numpy as np
     import wave
 
     elevenlabs = ElevenLabs(api_key=get_environment_variable("ELEVENLABS_API_KEY"))
+    logger.debug("Initialized ElevenLabs client for STT")
 
     audio_buffer = np.clip(audio_buffer, -1.0, 1.0)
     audio_int16 = (audio_buffer * 32767).astype(np.int16)
+    logger.debug("Audio buffer processed for WAV conversion")
 
     wav_buffer = BytesIO()
     with wave.open(wav_buffer, "wb") as wav_file:
@@ -181,6 +197,7 @@ def eleven_labs_stt(audio_buffer):
         wav_file.setsampwidth(2)  # 2 bytes for int16
         wav_file.setframerate(16000)
         wav_file.writeframes(audio_int16.tobytes())
+    logger.debug("WAV buffer created")
 
     wav_buffer.seek(0)
 
@@ -189,5 +206,8 @@ def eleven_labs_stt(audio_buffer):
         model_id="scribe_v1",
         tag_audio_events=True,
     )
+    logger.debug("ElevenLabs STT API call completed")
 
-    return response.text
+    transcribed_text = response.text
+    logger.info(f"ElevenLabs transcription: '{transcribed_text}'")
+    return transcribed_text
