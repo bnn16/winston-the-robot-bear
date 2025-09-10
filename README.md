@@ -1,70 +1,123 @@
-# Winston - Your Personal AI Assistant
+# Winston the Shitty Robot Stuffed Animal
 
-> "Not only CEOs deserve personal assistants."
+A voice assistant project built for the "Shitty Robot Challenge" university competition. This quirky AI companion listens for the wake word "Winston" and responds to voice commands with personality and wit.
 
-Remember the first time you saw Tony Stark talking to Jarvis? That moment when technology felt truly magical? **Winston** brings that vision to life - an AI assistant that actually knows you, manages your life, and gets smarter over time.
+**Source code by Bogdan Nikolov (@bnn16)**
 
-## 🎯 The Vision
+## Features
 
-Winston isn't just another voice assistant that sets timers. It's your personal AI companion that:
-- **Remembers** your conversations and learns your patterns
-- **Thinks ahead** to help before you even ask
-- **Integrates** with your digital life seamlessly
-- **Talks** to you naturally - no chat interfaces needed
+- **Wake Word Detection**: Responds to "Winston" using real-time audio processing
+- **Speech-to-Text**: Converts voice commands to text using ElevenLabs API
+- **AI Processing**: Generates intelligent responses using Google Gemini LLM
+- **Text-to-Speech**: Speaks responses back using ElevenLabs TTS
+- **Real-time Audio**: Continuous listening with silence detection
 
-### Real-Life Examples
+## How It Works
 
-**Morning Rush:**
-> You: "I'm running late!"
-> Winston: "I'll message your team that you'll be 10 minutes late. Your first meeting isn't until 10, so you're fine. Oh, and you got an important email from your boss about the Johnson project - want me to read it to you while you drive?"
+1. **Listening Mode**: The assistant continuously monitors audio input for the wake word "Winston"
+2. **Command Capture**: Once the wake word is detected, it starts recording the user's command
+3. **Silence Detection**: Recording stops after detecting 3 seconds of silence
+4. **Transcription**: The recorded audio is sent to ElevenLabs for speech-to-text conversion
+5. **AI Processing**: The transcribed text is processed by Google Gemini to generate a response
+6. **Voice Response**: The AI response is converted to speech and played back through speakers
 
-**Evening Commute:**
-> You: "What's in my fridge?"
-> Winston: "Not much - just eggs and some vegetables. Want me to find a grocery store on your route? I can make a list based on what you might want to cook."
+## Installation
 
-**Student Life:**
-> You: "I have an exam in 5 days and I'm freaking out."
-> Winston: "Okay, let's break this down. Based on your syllabus, you need to cover 8 chapters. I'll create a study schedule - 2 chapters per day with breaks. Want me to quiz you each evening on what you studied?"
+### Prerequisites
+- Python 3.13+
+- Microphone access
+- API keys for ElevenLabs and Google Gemini
 
-## 🚀 Features (Planned for MVP)
+### Setup Steps
 
-- **Smart Memory**: Maintains context across all conversations
-- **Email Management**: Summarizes, prioritizes, and helps you respond
-- **Calendar Intelligence**: Preps you for meetings, manages your schedule
-- **Proactive Reminders**: Thinks ahead so you don't have to
-- **Voice-First Interface**: Everything happens naturally through conversation
+1. **Clone the repository**
+   ```bash
+   git clone todo add me
+   cd assistant-kit
+   ```
 
-## 🛠️ Tech Stack
+2. **Create virtual environment**
+   ```bash
+   python -m venv assistant-kit-env
+   ```
 
-Currently building with:
-- **Backend**: Python (FastAPI)
-- **AI**: LLM integration (GPT-4/Claude/Llama)
-- **Memory**: Vector database for conversation history
-- **Integrations**: Gmail, Google Calendar (via MCP)
+3. **Activate the environment**
+   ```bash
+   source assistant-kit-env/bin/activate  # On macOS/Linux
+   # or
+   assistant-kit-env\Scripts\activate     # On Windows
+   ```
 
-## 📱 Platform Roadmap
+4. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Winston is part of the **Assistant Kit** ecosystem:
+5. **Set up environment variables**
+   
+   Create a `.env` file in the root directory with your API keys:
+   ```
+   ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
+   GOOGLE_API_KEY=your_google_api_key_here
+   ```
 
-1. **Now**: Python backend development
-2. **Next**: Web application
-3. **Soon**: Native mobile apps (iOS/Android)
-4. **Future**: Desktop apps & physical devices
+## Usage
 
-## 💡 Why Winston?
+1. **Start the assistant**
+   ```bash
+   python main.py
+   ```
 
-Because everyone deserves an AI that:
-- Knows when your mom called while you were in a meeting
-- Reminds you about family gatherings before you forget
-- Helps you study smarter, not harder
-- Makes your daily chaos a little more manageable
+2. **Interact with the assistant**
+   - Say "Hey Winston" to wake it up
+   - Follow with your command/question
+   - The assistant will process and respond verbally
 
-## 🏗️ Project Status
+3. **Stop the assistant**
+   - Press `Ctrl+C` to stop the program
 
-**Pre-MVP** - Building the foundation for something magical.
+## Project Structure
 
-Target: 4-month development cycle focusing on core AI capabilities and essential integrations.
+```
+assistant-kit/
+├── main.py                 # Main entry point
+├── core/
+│   ├── brain/
+│   │   └── llm.py         # LLM integration (Google Gemini)
+│   └── voice/
+│       ├── stt.py         # Speech-to-text (ElevenLabs)
+│       └── tts.py         # Text-to-speech (ElevenLabs)
+├── utils/
+│   └── env_utils.py       # Environment variable management
+├── requirements.txt        # Python dependencies
+└── README.md              # This file
+```
 
----
+## Key Technologies
 
-*Winston is part of Assistant Kit - a platform for building personal AI assistants that actually help.*
+- **PyAudio**: Real-time audio streaming
+- **ElevenLabs**: Speech-to-text and text-to-speech
+- **Google Gemini**: Large language model for response generation
+- **NumPy**: Audio data processing
+- **Whisper**: Local wake word detection (fallback)
+
+## Configuration
+
+You can adjust the following parameters in `main.py`:
+- `silence_threshold`: Sensitivity for silence detection (default: 0.01)
+- `max_silence_seconds`: Maximum silence before stopping recording (default: 3.0)
+
+## Troubleshooting
+
+- **Audio issues**: Ensure microphone permissions are granted
+- **API errors**: Verify your API keys in the `.env` file
+- **Getting cut off**: Increase `max_silence_seconds` if commands are being truncated
+
+## License
+
+This project is created for educational purposes as part of a university challenge.
+
+## Author
+
+**Bogdan Nikolov**  
+GitHub: [@bnn16](https://github.com/bnn16)
