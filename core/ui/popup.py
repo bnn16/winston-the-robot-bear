@@ -3,6 +3,7 @@ from tkinter import ttk
 import logging
 from typing import Optional
 import queue
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,10 @@ class PersistentStatusWindow:
         self.update_queue = queue.Queue()
         self.current_state = "waiting"
         self._animation_id = None
+        self.recording_trigger = threading.Event()
+        self.recording_stop = threading.Event()
+        self.is_recording = False
+        self.voice_assistant_callback = None
         
     def create_window(self):
         self.root = tk.Tk()
@@ -31,6 +36,9 @@ class PersistentStatusWindow:
         self.root.attributes('-topmost', True)
         
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+        
+        self.root.bind('<Return>', self._on_enter_pressed)
+        self.root.focus_set()
         
         self.root.configure(bg='#1e1e1e')
         
@@ -48,7 +56,7 @@ class PersistentStatusWindow:
         
         self.status_label = tk.Label(
             self.main_frame,
-            text="👂 Listening for 'Hey Winston'...",
+            text="⌨️ Press ENTER to record...",
             font=("Helvetica", 18),
             fg='#00ff88',
             bg='#1e1e1e'
@@ -96,6 +104,14 @@ class PersistentStatusWindow:
     def _on_closing(self):
         self.root.iconify()
         
+    def _on_enter_pressed(self, event):
+        """Handle Enter key press to start/stop recording."""
+        if self.current_state == "waiting":
+            self.recording_trigger.set()
+        elif self.is_recording:
+            self.recording_stop.set()
+            logger.info("Enter pressed - stopping recording")
+        
     def _check_updates(self):
         try:
             while True:
@@ -106,6 +122,8 @@ class PersistentStatusWindow:
                     self._set_waiting_state()
                 elif method == "set_command_detected":
                     self._set_command_detected_state(update.get("text", ""))
+                elif method == "set_recording":
+                    self._set_recording_state()
                 elif method == "set_thinking":
                     self._set_thinking_state()
                 elif method == "set_response":
@@ -120,10 +138,11 @@ class PersistentStatusWindow:
         
     def _set_waiting_state(self):
         self.current_state = "waiting"
-        self.status_label.config(text="👂 Listening for 'Hey Winston'...", fg='#00ff88')
+        self.is_recording = False
+        self.status_label.config(text="⌨️ Press ENTER to record...", fg='#00ff88')
         self.text_widget.config(state=tk.NORMAL)
         self.text_widget.delete("1.0", tk.END)
-        self.text_widget.insert("1.0", "Say 'Hey Winston' to wake me up! 🎤")
+        self.text_widget.insert("1.0", "Press ENTER in this window to start recording your command! 🎤\n\nMake sure this window is focused and press ENTER when ready.")
         self.text_widget.config(state=tk.DISABLED)
         self._stop_animation()
         
@@ -133,6 +152,15 @@ class PersistentStatusWindow:
         self.text_widget.config(state=tk.NORMAL)
         self.text_widget.delete("1.0", tk.END)
         self.text_widget.insert("1.0", f"You said:\n\n\"{command_text}\"")
+        self.text_widget.config(state=tk.DISABLED)
+        
+    def _set_recording_state(self):
+        self.current_state = "recording"
+        self.is_recording = True
+        self.status_label.config(text="🔴 Recording... Press ENTER to stop", fg='#ff0000')
+        self.text_widget.config(state=tk.NORMAL)
+        self.text_widget.delete("1.0", tk.END)
+        self.text_widget.insert("1.0", "🔴 Recording in progress...\n\nSpeak your command now!\n\nPress ENTER again to stop recording.")
         self.text_widget.config(state=tk.DISABLED)
         
     def _set_thinking_state(self):
@@ -179,6 +207,9 @@ class PersistentStatusWindow:
     def show_command_detected(self, command_text: str):
         self.update_queue.put({"method": "set_command_detected", "text": command_text})
         
+    def show_recording(self):
+        self.update_queue.put({"method": "set_recording"})
+        
     def show_thinking(self):
         self.update_queue.put({"method": "set_thinking"})
         
@@ -187,6 +218,19 @@ class PersistentStatusWindow:
         
     def show_speaking(self):
         self.update_queue.put({"method": "set_speaking"})
+        
+    def wait_for_recording_trigger(self):
+        """Wait for the recording trigger to be set, then clear it."""
+        self.recording_trigger.wait()
+        self.recording_trigger.clear()
+        
+    def wait_for_recording_stop(self, timeout=None):
+        """Wait for the recording stop trigger."""
+        return self.recording_stop.wait(timeout)
+        
+    def clear_recording_stop(self):
+        """Clear the recording stop event."""
+        self.recording_stop.clear()
         
     def run(self):
         self.root.mainloop()
@@ -216,6 +260,12 @@ def show_command_detected(command_text: str):
         _window_instance.show_command_detected(command_text)
 
 
+def show_recording():
+    """Show recording state."""
+    if _window_instance:
+        _window_instance.show_recording()
+
+
 def show_thinking():
     if _window_instance:
         _window_instance.show_thinking()
@@ -229,6 +279,25 @@ def show_response(response_text: str):
 def show_speaking():
     if _window_instance:
         _window_instance.show_speaking()
+
+
+def wait_for_recording_trigger():
+    """Wait for the user to press Enter to start recording."""
+    if _window_instance:
+        _window_instance.wait_for_recording_trigger()
+
+
+def wait_for_recording_stop(timeout=None):
+    """Wait for the user to press Enter to stop recording."""
+    if _window_instance:
+        return _window_instance.wait_for_recording_stop(timeout)
+    return False
+
+
+def clear_recording_stop():
+    """Clear the recording stop event."""
+    if _window_instance:
+        _window_instance.clear_recording_stop()
 
 
 def close_popup():

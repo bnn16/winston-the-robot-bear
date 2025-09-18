@@ -1,5 +1,5 @@
 from core.brain import call_llm_with_command
-from core.voice.stt import check_audio_stream_for_wake_word
+from core.voice.stt import record_command_on_keypress
 from core.voice.tts import speak_response
 from core.ui.popup import (
     initialize_window, show_thinking, show_response, 
@@ -42,7 +42,7 @@ def run_interactive_assistant():
 
             start_time = time.time()
             
-            command = check_audio_stream_for_wake_word(
+            command = record_command_on_keypress(
                 stream,
                 silence_threshold=0.01,
                 max_silence_seconds=3.0,
@@ -53,7 +53,7 @@ def run_interactive_assistant():
             if command is None:
                 continue
 
-            logger.info(f"Wake word detected! Command received: '{command}'")
+            logger.info(f"Command received: '{command}'")
             
             show_command_detected(command)
             

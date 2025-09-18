@@ -6,6 +6,10 @@ import pyaudio
 from io import BytesIO
 import numpy as np
 import logging
+import threading
+import time
+import select
+import sys
 
 from utils.env_utils import get_environment_variable, is_development
 
@@ -69,6 +73,71 @@ def waiting_for_wake_word_handler(
     logger.info("🎯 Wake word detected! Switching to command recording mode")
 
     return ListeningState.RECORDING_COMMAND, list(wake_word_buffer)
+
+
+def record_command_on_keypress(
+    audio_source: pyaudio.Stream,
+    silence_threshold: float = 0.01,
+    max_silence_seconds: float = 3.0,
+) -> Optional[str]:
+    """
+    Wait for GUI Enter key press, then record audio until Enter is pressed again or silence.
+    
+    Args:
+        audio_source: PyAudio stream
+        silence_threshold: Threshold for detecting silence
+        max_silence_seconds: Seconds of silence before stopping recording
+        
+    Returns:
+        Transcribed command text or None if no command captured
+    """
+    from core.ui.popup import wait_for_recording_trigger, show_recording, wait_for_recording_stop, clear_recording_stop
+    
+    logger.info("Waiting for Enter key press in GUI...")
+    
+    wait_for_recording_trigger()
+    
+    clear_recording_stop()
+    
+    show_recording()
+    
+    command_buffer = []
+    consecutive_silence = 0
+    max_silence_chunks = int(max_silence_seconds / 0.25)
+    
+    audio_generator = audio_stream_generator(audio_source)
+    
+    logger.info("🔴 Recording... (press Enter again to stop or wait for silence)")
+    
+    for chunk in audio_generator:
+        command_buffer.append(chunk)
+        
+        if wait_for_recording_stop(timeout=0.001):
+            logger.info("Enter pressed - stopping recording")
+            break
+        
+        is_silent = np.abs(chunk).mean() < silence_threshold
+        
+        if is_silent:
+            consecutive_silence += 1
+        else:
+            consecutive_silence = 0
+            
+        if consecutive_silence >= max_silence_chunks:
+            logger.info("Silence detected, finishing recording")
+            break
+            
+        if len(command_buffer) > 120:
+            logger.info("Maximum recording time reached")
+            break
+    
+    if command_buffer:
+        full_audio = np.concatenate(command_buffer)
+        full_command = eleven_labs_stt(full_audio)
+        return full_command
+    
+    logger.debug("No command captured")
+    return None
 
 
 def check_audio_stream_for_wake_word(
